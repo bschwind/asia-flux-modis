@@ -32,7 +32,7 @@ struct TowerEntryData {
 
 const PIXELS: u64 = 86400;
 const LINES: u64 = 43200;
-const PIXEL_SIZE: f64 = (180 / LINES) as f64;
+const PIXEL_SIZE: f64 = 180.0 / LINES as f64;
 
 fn get_modis_data(record: StringRecord) -> io::Result<()> {
     let mut modis_binary: ModisBin500m = Default::default();
@@ -45,22 +45,39 @@ fn get_modis_data(record: StringRecord) -> io::Result<()> {
         lon: record.get(6).unwrap().parse().unwrap(),
     };
 
-    let date = NaiveDate::from_yo_opt(tower_entry_data.year, tower_entry_data.doy).unwrap();
-    let date_format = date.format("%Y.%m.%d");
+    if tower_entry_data.site_code == "YPF" {
+        let date = NaiveDate::from_yo_opt(tower_entry_data.year, tower_entry_data.doy).unwrap();
+        let date_format = date.format("%Y.%m.%d");
 
-    let file_string = format!(
-        "/modis01/dan/data/MOD15A2H.061/500m_org/MOD15A2H.061.{}.Lai_500m.bsq",
-        date_format,
-    );
+        let file_string = format!(
+            "/modis01/dan/data/MOD15A2H.061/500m_org/MOD15A2H.061.{}.Lai_500m.bsq",
+            date_format,
+        );
 
-    println!("{file_string}");
-    let seek_line = (tower_entry_data.lat + 90.0) / PIXEL_SIZE;
-    let seek_pixel = (tower_entry_data.lon + 180.0) / PIXEL_SIZE;
-    let seek_point = (seek_line.round() as u64 * PIXELS - 1) + seek_pixel.round() as u64;
-    let mut file = BufReader::new(File::open(file_string)?);
-    file.seek(SeekFrom::Start(seek_point - 3))?;
-    file.read_exact(&mut modis_binary.fourth)?;
-    println!("value: {:?}", modis_binary.fourth);
+        println!("{file_string}");
+        let seek_line: u64 = LINES - ((tower_entry_data.lat + 90.0) / PIXEL_SIZE) as u64 - 1;
+        let seek_pixel: u64 = ((tower_entry_data.lon + 180.0) / PIXEL_SIZE) as u64;
+        let seek_point: u64 = (seek_line * PIXELS - 1) + seek_pixel;
+        let mut file = BufReader::new(File::open(file_string)?);
+
+        file.seek(SeekFrom::Start(seek_point - 3 - (PIXELS * 3)))?;
+        file.read_exact(&mut modis_binary.first)?;
+        file.seek(SeekFrom::Start(seek_point - 3 - (PIXELS * 2)))?;
+        file.read_exact(&mut modis_binary.second)?;
+        file.seek(SeekFrom::Start(seek_point - 3 - PIXELS))?;
+        file.read_exact(&mut modis_binary.third)?;
+        file.seek(SeekFrom::Start(seek_point - 3))?;
+        file.read_exact(&mut modis_binary.fourth)?;
+
+        let mut value: [u8; 1] = Default::default();
+        file.seek(SeekFrom::Start(seek_point))?;
+        file.read_exact(&mut value)?;
+        println!("seek_line: {seek_line}");
+        println!("seek_pixel: {seek_pixel}");
+        println!("exact value: {value:?}");
+        println!("tower data: {:?}", tower_entry_data);
+        println!("value: {:?}", modis_binary);
+    }
 
     Ok(())
 }
