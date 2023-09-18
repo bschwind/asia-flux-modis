@@ -8,7 +8,7 @@ use std::{
     error::Error,
     ffi::OsString,
     fs::File,
-    fs::{self, remove_file},
+    fs::{self},
     path::{Path, PathBuf},
     str,
     time::Instant,
@@ -64,7 +64,7 @@ pub fn run() -> Result<(), Box<dyn Error>> {
 
         // skip previusly processed sites
         if site_file_path.exists() {
-            // remove_file(site_file_path)?;
+            // std::fs::remove_file(site_file_path)?;
             continue;
         }
 
@@ -75,8 +75,10 @@ pub fn run() -> Result<(), Box<dyn Error>> {
 
         // NewRecord struct. Each field represents on column of new csv file.
         // Represents line which will be written to new csv.
-        let mut rcrd = NewRecord::default();
-        rcrd.site_code = site_code;
+        let mut rcrd = NewRecord {
+            site_code,
+            ..Default::default()
+        };
 
         // Start at beginning of file for each site code
         rdr.seek(Position::new())?;

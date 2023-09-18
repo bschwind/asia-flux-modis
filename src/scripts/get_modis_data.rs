@@ -26,8 +26,8 @@ fn find_mesh_values<const DW: usize, const DH: usize, const QCW: usize, const QC
 
     // if pixel size is 1km, divide these values by two to get an accurate measurement
     if dm.modis_size == "1km" {
-        pixels = pixels / 2;
-        lines = lines / 2;
+        pixels /= 2;
+        lines /= 2;
     }
     // 1km and 500m are actually not accurate, each pixel actually represents a certain number of degrees squared on earth
     // this finds that number.
@@ -101,10 +101,10 @@ fn find_mesh_values<const DW: usize, const DH: usize, const QCW: usize, const QC
     if dm.data_bytes == 2 {
         if dm.data_type == "i16" {
             let d: &[i16] = cast_slice(&flattened_data_u8);
-            flattened_data_f64 = d.iter().map(|item| item.clone() as f64).collect();
+            flattened_data_f64 = d.iter().map(|item| *item as f64).collect();
         } else if dm.data_type == "u16" {
             let d: &[u16] = cast_slice(&flattened_data_u8);
-            flattened_data_f64 = d.iter().map(|item| item.clone() as f64).collect();
+            flattened_data_f64 = d.iter().map(|item| *item as f64).collect();
         }
     } else if dm.data_bytes == 1 {
         flattened_data_f64 = flattened_data_u8
@@ -144,13 +144,13 @@ fn find_mesh_values<const DW: usize, const DH: usize, const QCW: usize, const QC
         flattened_data_f64.retain_mut(|&mut x| x != 32767.0);
         good_qc_count = flattened_qc_u8
             .into_iter()
-            .filter(|x| x.clone() == 0 as u8)
+            .filter(|x| *x == 0_u8)
             .count();
     }
 
     // if nulls are more than half of data, return empty string
     // not enough data to justify using
-    if (null_val_count / data_len as f32) > 0.5 {
+    if (null_val_count / data_len) > 0.5 {
         (None, None)
     } else {
         // Get goodpix percent
