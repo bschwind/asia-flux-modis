@@ -1,3 +1,4 @@
+use crate::scripts::define_metadata::Dataset;
 use bytemuck::cast_slice;
 // use rayon::prelude::*;
 use std::{
@@ -142,10 +143,7 @@ fn find_mesh_values<const DW: usize, const DH: usize, const QCW: usize, const QC
     } else if dm.product == "MCD43A4" {
         null_val_count = flattened_data_f64.iter().filter(|&x| x == &32767.0).count() as f32;
         flattened_data_f64.retain_mut(|&mut x| x != 32767.0);
-        good_qc_count = flattened_qc_u8
-            .into_iter()
-            .filter(|x| *x == 0_u8)
-            .count();
+        good_qc_count = flattened_qc_u8.into_iter().filter(|x| *x == 0_u8).count();
     }
 
     // if nulls are more than half of data, return empty string
@@ -209,109 +207,135 @@ pub fn get_modis_data(
     // couldn't figure out any other way to do this than replicate it for every dataset lol.
     // calls above function find_mesh_value, which is when it reads the binary files.
     // it then writes the data it reads and processes to the new csv record
-    if dm.dataset.as_str() == "Lai" {
-        (data_ave, goodpix_per) = find_mesh_values(
-            &dm,
-            &tower_entry_data,
-            data_qc_paths,
-            array_lai,
-            array_lai_qc,
-        );
-        rcrd.lai = data_ave;
-        rcrd.lai_goodpix = goodpix_per;
-        rcrd
-    } else if dm.dataset.as_str() == "Fpar" {
-        (data_ave, goodpix_per) = find_mesh_values(
-            &dm,
-            &tower_entry_data,
-            data_qc_paths,
-            array_fpar,
-            array_fpar_qc,
-        );
-        rcrd.fpar = data_ave;
-        rcrd.fpar_goodpix = goodpix_per;
-        rcrd
-    } else if dm.dataset.as_str() == "EVI" {
-        (data_ave, goodpix_per) = find_mesh_values(
-            &dm,
-            &tower_entry_data,
-            data_qc_paths,
-            array_evi,
-            array_vi_qc,
-        );
-        rcrd.evi = data_ave;
-        rcrd.evi_goodpix = goodpix_per;
-        rcrd
-    } else if dm.dataset.as_str() == "NDVI" {
-        (data_ave, goodpix_per) = find_mesh_values(
-            &dm,
-            &tower_entry_data,
-            data_qc_paths,
-            array_ndvi,
-            array_vi_qc,
-        );
-        rcrd.ndvi = data_ave;
-        rcrd.ndvi_goodpix = goodpix_per;
-        rcrd
-    } else if dm.dataset.as_str() == "LST_Day" {
-        (data_ave, goodpix_per) = find_mesh_values(
-            &dm,
-            &tower_entry_data,
-            data_qc_paths,
-            array_lst_day,
-            array_lst_qc,
-        );
-        rcrd.lst_day = data_ave;
-        rcrd.lst_day_goodpix = goodpix_per;
-        rcrd
-    } else if dm.dataset.as_str() == "LST_Night" {
-        (data_ave, goodpix_per) = find_mesh_values(
-            &dm,
-            &tower_entry_data,
-            data_qc_paths,
-            array_lst_night,
-            array_lst_qc,
-        );
-        rcrd.lst_night = data_ave;
-        rcrd.lst_night_goodpix = goodpix_per;
-        rcrd
-    } else if dm.dataset.as_str().contains("Nadir") {
-        (data_ave, goodpix_per) =
-            find_mesh_values(&dm, &tower_entry_data, data_qc_paths, array_nrb, array_brdf);
-        match dm.dataset.as_str() {
-            "Nadir_Reflectance_Band1" => {
-                rcrd.nadir_ref_band1 = data_ave;
-                rcrd.nadir_ref_band1_goodpix = goodpix_per;
-            }
-            "Nadir_Reflectance_Band2" => {
-                rcrd.nadir_ref_band2 = data_ave;
-                rcrd.nadir_ref_band2_goodpix = goodpix_per;
-            }
-            "Nadir_Reflectance_Band3" => {
-                rcrd.nadir_ref_band3 = data_ave;
-                rcrd.nadir_ref_band3_goodpix = goodpix_per;
-            }
-            "Nadir_Reflectance_Band4" => {
-                rcrd.nadir_ref_band4 = data_ave;
-                rcrd.nadir_ref_band4_goodpix = goodpix_per;
-            }
-            "Nadir_Reflectance_Band5" => {
-                rcrd.nadir_ref_band5 = data_ave;
-                rcrd.nadir_ref_band5_goodpix = goodpix_per;
-            }
-            "Nadir_Reflectance_Band6" => {
-                rcrd.nadir_ref_band6 = data_ave;
-                rcrd.nadir_ref_band6_goodpix = goodpix_per;
-            }
-            "Nadir_Reflectance_Band7" => {
-                rcrd.nadir_ref_band7 = data_ave;
-                rcrd.nadir_ref_band7_goodpix = goodpix_per;
-            }
-            _ => {}
+    match dm.dataset {
+        Dataset::Lai => {
+            (data_ave, goodpix_per) = find_mesh_values(
+                &dm,
+                &tower_entry_data,
+                data_qc_paths,
+                array_lai,
+                array_lai_qc,
+            );
+            rcrd.lai = data_ave;
+            rcrd.lai_goodpix = goodpix_per;
+            rcrd
         }
-        rcrd
-    } else {
-        rcrd
+        Dataset::Fpar => {
+            (data_ave, goodpix_per) = find_mesh_values(
+                &dm,
+                &tower_entry_data,
+                data_qc_paths,
+                array_fpar,
+                array_fpar_qc,
+            );
+            rcrd.fpar = data_ave;
+            rcrd.fpar_goodpix = goodpix_per;
+            rcrd
+        }
+        Dataset::Evi => {
+            (data_ave, goodpix_per) = find_mesh_values(
+                &dm,
+                &tower_entry_data,
+                data_qc_paths,
+                array_evi,
+                array_vi_qc,
+            );
+            rcrd.evi = data_ave;
+            rcrd.evi_goodpix = goodpix_per;
+            rcrd
+        }
+        Dataset::Ndvi => {
+            (data_ave, goodpix_per) = find_mesh_values(
+                &dm,
+                &tower_entry_data,
+                data_qc_paths,
+                array_ndvi,
+                array_vi_qc,
+            );
+            rcrd.ndvi = data_ave;
+            rcrd.ndvi_goodpix = goodpix_per;
+            rcrd
+        }
+        Dataset::LstDay => {
+            (data_ave, goodpix_per) = find_mesh_values(
+                &dm,
+                &tower_entry_data,
+                data_qc_paths,
+                array_lst_day,
+                array_lst_qc,
+            );
+            rcrd.lst_day = data_ave;
+            rcrd.lst_day_goodpix = goodpix_per;
+            rcrd
+        }
+        Dataset::LstNight => {
+            (data_ave, goodpix_per) = find_mesh_values(
+                &dm,
+                &tower_entry_data,
+                data_qc_paths,
+                array_lst_night,
+                array_lst_qc,
+            );
+            rcrd.lst_night = data_ave;
+            rcrd.lst_night_goodpix = goodpix_per;
+            rcrd
+        }
+        Dataset::NadirReflectanceBand1 => {
+            (data_ave, goodpix_per) =
+                find_mesh_values(&dm, &tower_entry_data, data_qc_paths, array_nrb, array_brdf);
+
+            rcrd.nadir_ref_band1 = data_ave;
+            rcrd.nadir_ref_band1_goodpix = goodpix_per;
+            rcrd
+        }
+        Dataset::NadirReflectanceBand2 => {
+            (data_ave, goodpix_per) =
+                find_mesh_values(&dm, &tower_entry_data, data_qc_paths, array_nrb, array_brdf);
+
+            rcrd.nadir_ref_band2 = data_ave;
+            rcrd.nadir_ref_band2_goodpix = goodpix_per;
+            rcrd
+        }
+        Dataset::NadirReflectanceBand3 => {
+            (data_ave, goodpix_per) =
+                find_mesh_values(&dm, &tower_entry_data, data_qc_paths, array_nrb, array_brdf);
+
+            rcrd.nadir_ref_band3 = data_ave;
+            rcrd.nadir_ref_band3_goodpix = goodpix_per;
+            rcrd
+        }
+        Dataset::NadirReflectanceBand4 => {
+            (data_ave, goodpix_per) =
+                find_mesh_values(&dm, &tower_entry_data, data_qc_paths, array_nrb, array_brdf);
+
+            rcrd.nadir_ref_band4 = data_ave;
+            rcrd.nadir_ref_band4_goodpix = goodpix_per;
+            rcrd
+        }
+        Dataset::NadirReflectanceBand5 => {
+            (data_ave, goodpix_per) =
+                find_mesh_values(&dm, &tower_entry_data, data_qc_paths, array_nrb, array_brdf);
+
+            rcrd.nadir_ref_band5 = data_ave;
+            rcrd.nadir_ref_band5_goodpix = goodpix_per;
+            rcrd
+        }
+        Dataset::NadirReflectanceBand6 => {
+            (data_ave, goodpix_per) =
+                find_mesh_values(&dm, &tower_entry_data, data_qc_paths, array_nrb, array_brdf);
+
+            rcrd.nadir_ref_band6 = data_ave;
+            rcrd.nadir_ref_band6_goodpix = goodpix_per;
+            rcrd
+        }
+        Dataset::NadirReflectanceBand7 => {
+            (data_ave, goodpix_per) =
+                find_mesh_values(&dm, &tower_entry_data, data_qc_paths, array_nrb, array_brdf);
+
+            rcrd.nadir_ref_band7 = data_ave;
+            rcrd.nadir_ref_band7_goodpix = goodpix_per;
+            rcrd
+        }
     }
 
     // Ok(new_record?)

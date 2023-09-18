@@ -1,28 +1,62 @@
 use crate::data::DatasetMetadata;
+use strum_macros::EnumIter;
 
-pub fn get_dataset_names() -> Vec<String> {
-    vec![
-        "Lai".to_string(),
-        "Fpar".to_string(),
-        "EVI".to_string(),
-        "NDVI".to_string(),
-        "LST_Day".to_string(),
-        "LST_Night".to_string(),
-        "Nadir_Reflectance_Band1".to_string(),
-        "Nadir_Reflectance_Band2".to_string(),
-        "Nadir_Reflectance_Band3".to_string(),
-        "Nadir_Reflectance_Band4".to_string(),
-        "Nadir_Reflectance_Band5".to_string(),
-        "Nadir_Reflectance_Band6".to_string(),
-        "Nadir_Reflectance_Band7".to_string(),
-    ]
+#[derive(Debug, Copy, Clone, PartialEq, EnumIter)]
+pub enum Dataset {
+    Lai,
+    Fpar,
+    Evi,
+    Ndvi,
+    LstDay,
+    LstNight,
+    NadirReflectanceBand1,
+    NadirReflectanceBand2,
+    NadirReflectanceBand3,
+    NadirReflectanceBand4,
+    NadirReflectanceBand5,
+    NadirReflectanceBand6,
+    NadirReflectanceBand7,
 }
 
-pub fn get_dataset_metadata(dataset_name: &str) -> DatasetMetadata {
-    let mut dataset_metadata = DatasetMetadata::default();
-    if ["Lai", "Fpar"].contains(&dataset_name) {
-        dataset_metadata = DatasetMetadata {
-            dataset: dataset_name.to_string(),
+impl Dataset {
+    pub fn name(&self) -> String {
+        let name = match self {
+            Dataset::Lai => "Lai",
+            Dataset::Fpar => "Fpar",
+            Dataset::Evi => "EVI",
+            Dataset::Ndvi => "NDVI",
+            Dataset::LstDay => "LST_Day",
+            Dataset::LstNight => "LST_Night",
+            Dataset::NadirReflectanceBand1 => "Nadir_Reflectance_Band1",
+            Dataset::NadirReflectanceBand2 => "Nadir_Reflectance_Band2",
+            Dataset::NadirReflectanceBand3 => "Nadir_Reflectance_Band3",
+            Dataset::NadirReflectanceBand4 => "Nadir_Reflectance_Band4",
+            Dataset::NadirReflectanceBand5 => "Nadir_Reflectance_Band5",
+            Dataset::NadirReflectanceBand6 => "Nadir_Reflectance_Band6",
+            Dataset::NadirReflectanceBand7 => "Nadir_Reflectance_Band7",
+        };
+
+        name.to_string()
+    }
+
+    fn band(&self) -> Option<u8> {
+        match self {
+            Dataset::NadirReflectanceBand1 => Some(1),
+            Dataset::NadirReflectanceBand2 => Some(2),
+            Dataset::NadirReflectanceBand3 => Some(3),
+            Dataset::NadirReflectanceBand4 => Some(4),
+            Dataset::NadirReflectanceBand5 => Some(5),
+            Dataset::NadirReflectanceBand6 => Some(6),
+            Dataset::NadirReflectanceBand7 => Some(7),
+            _ => None,
+        }
+    }
+}
+
+pub fn get_dataset_metadata(dataset: Dataset) -> DatasetMetadata {
+    match dataset {
+        Dataset::Lai | Dataset::Fpar => DatasetMetadata {
+            dataset,
             product: "MOD15A2H".to_string(),
             qc_name: "FparLai_QC".to_string(),
             data_bytes: 1,
@@ -30,11 +64,10 @@ pub fn get_dataset_metadata(dataset_name: &str) -> DatasetMetadata {
             modis_size: String::from("500m"),
             data_type: String::from("u8"),
             qc_type: String::from("u8"),
-            scale_factor: if dataset_name == "Lai" { 0.1 } else { 0.01 },
-        }
-    } else if ["NDVI", "EVI"].contains(&dataset_name) {
-        dataset_metadata = DatasetMetadata {
-            dataset: dataset_name.to_string(),
+            scale_factor: if dataset == Dataset::Lai { 0.1 } else { 0.01 },
+        },
+        Dataset::Evi | Dataset::Ndvi => DatasetMetadata {
+            dataset,
             product: "MOD13A2".to_string(),
             qc_name: "VI_Quality".to_string(),
             data_bytes: 2,
@@ -43,12 +76,11 @@ pub fn get_dataset_metadata(dataset_name: &str) -> DatasetMetadata {
             data_type: String::from("i16"),
             qc_type: String::from("u16"),
             scale_factor: 0.0001,
-        }
-    } else if ["LST_Day", "LST_Night"].contains(&dataset_name) {
-        dataset_metadata = DatasetMetadata {
-            dataset: dataset_name.to_string(),
+        },
+        Dataset::LstDay | Dataset::LstNight => DatasetMetadata {
+            dataset,
             product: "MOD11A2".to_string(),
-            qc_name: if dataset_name == "LST_Day" {
+            qc_name: if dataset == Dataset::LstDay {
                 "QC_Day".to_string()
             } else {
                 "QC_Night".to_string()
@@ -59,20 +91,29 @@ pub fn get_dataset_metadata(dataset_name: &str) -> DatasetMetadata {
             data_type: String::from("u16"),
             qc_type: String::from("u8"),
             scale_factor: 0.02,
-        }
-    } else if dataset_name.contains("Nadir") {
-        let band: String = dataset_name.chars().rev().take(1).collect();
-        dataset_metadata = DatasetMetadata {
-            dataset: dataset_name.to_string(),
-            product: "MCD43A4".to_string(),
-            qc_name: format!("BRDF_Albedo_Band_Mandatory_Quality_Band{}", band),
-            data_bytes: 2,
-            qc_bytes: 1,
-            modis_size: String::from("500m"),
-            data_type: String::from("i16"),
-            qc_type: String::from("u8"),
-            scale_factor: 0.0001,
+        },
+        Dataset::NadirReflectanceBand1
+        | Dataset::NadirReflectanceBand2
+        | Dataset::NadirReflectanceBand3
+        | Dataset::NadirReflectanceBand4
+        | Dataset::NadirReflectanceBand5
+        | Dataset::NadirReflectanceBand6
+        | Dataset::NadirReflectanceBand7 => {
+            let band = dataset
+                .band()
+                .expect("NadirReflectance variants should have an associated band");
+
+            DatasetMetadata {
+                dataset,
+                product: "MCD43A4".to_string(),
+                qc_name: format!("BRDF_Albedo_Band_Mandatory_Quality_Band{band}"),
+                data_bytes: 2,
+                qc_bytes: 1,
+                modis_size: String::from("500m"),
+                data_type: String::from("i16"),
+                qc_type: String::from("u8"),
+                scale_factor: 0.0001,
+            }
         }
     }
-    dataset_metadata
 }

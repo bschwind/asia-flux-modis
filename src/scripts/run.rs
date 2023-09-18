@@ -13,6 +13,7 @@ use std::{
     str,
     time::Instant,
 };
+use strum::IntoEnumIterator;
 
 pub fn run() -> Result<(), Box<dyn Error>> {
     // MODIS is the name of the nasa sensor used to collect the binary data I'm using
@@ -147,9 +148,9 @@ pub fn run() -> Result<(), Box<dyn Error>> {
                     rcrd.gpp = "".to_string();
                 }
                 // a dataset name represents one set of binary files. Each one measure something different (temp/vegetation level/etc)
-                for dataset_name in get_dataset_names() {
+                for dataset_name in Dataset::iter() {
                     // get descriptive data about the dataset binary files
-                    let dm = get_dataset_metadata(&dataset_name);
+                    let dm = get_dataset_metadata(dataset_name);
                     // check if the corresponding dataset file exists for the corresponding date, return the data file path and the quality control file path
                     // both are binary files. QC just shows if a pixel in that location is reliable or not. The data file has the actual measured value. I have to read both.
                     let data_qc_paths = check_if_modis_data_exists(year, doy, modis_dir, &dm);
@@ -186,27 +187,37 @@ fn check_if_modis_data_exists(
     let naive_date = NaiveDate::from_yo_opt(year, doy).unwrap();
     let date = naive_date.format("%Y.%m.%d");
 
-    let mut data_file_string = String::new();
-    let mut qc_file_string = String::new();
-
-    if ["NDVI", "EVI"].contains(&dm.dataset.as_str()) {
-        data_file_string = format!(
-            "{}.061.{}.1_km_16_days_{}.bsq",
-            dm.product,
-            date,
-            dm.dataset.as_str()
-        );
-        qc_file_string = format!("{}.061.{}.1_km_16_days_VI_Quality.bsq", dm.product, date);
-    } else if ["Lai", "Fpar", "LST_Day", "LST_Night"].contains(&dm.dataset.as_str()) {
-        data_file_string = format!(
-            "{}.061.{}.{}_{}.bsq",
-            dm.product, date, dm.dataset, dm.modis_size
-        );
-        qc_file_string = format!("{}.061.{}.{}.bsq", dm.product, date, dm.qc_name);
-    } else if dm.dataset.as_str().contains("Nadir") {
-        data_file_string = format!("{}.061.{}.{}.bsq", dm.product, date, dm.dataset);
-        qc_file_string = format!("{}.061.{}.{}.bsq", dm.product, date, dm.qc_name);
-    }
+    let (data_file_string, qc_file_string) = match dm.dataset {
+        Dataset::Ndvi | Dataset::Evi => (
+            format!(
+                "{}.061.{}.1_km_16_days_{}.bsq",
+                dm.product,
+                date,
+                dm.dataset.name()
+            ),
+            format!("{}.061.{}.1_km_16_days_VI_Quality.bsq", dm.product, date),
+        ),
+        Dataset::Lai | Dataset::Fpar | Dataset::LstDay | Dataset::LstNight => (
+            format!(
+                "{}.061.{}.{}_{}.bsq",
+                dm.product,
+                date,
+                dm.dataset.name(),
+                dm.modis_size
+            ),
+            format!("{}.061.{}.{}.bsq", dm.product, date, dm.qc_name),
+        ),
+        Dataset::NadirReflectanceBand1
+        | Dataset::NadirReflectanceBand2
+        | Dataset::NadirReflectanceBand3
+        | Dataset::NadirReflectanceBand4
+        | Dataset::NadirReflectanceBand5
+        | Dataset::NadirReflectanceBand6
+        | Dataset::NadirReflectanceBand7 => (
+            format!("{}.061.{}.{}.bsq", dm.product, date, dm.dataset.name()),
+            format!("{}.061.{}.{}.bsq", dm.product, date, dm.qc_name),
+        ),
+    };
 
     let file_path_string = format!(
         "{}/{}.061/{}_org/{}",

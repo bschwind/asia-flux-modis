@@ -12,3 +12,5 @@ byteorder = "1.4.3"
 bytemuck = "1.13.1"
 rayon = "1.7.0"
 serde = { version = "1.0.188", features = ["derive"] }
+strum = "0.25"
+strum_macros = "0.25"

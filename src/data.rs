@@ -1,3 +1,4 @@
+use crate::scripts::Dataset;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug)]
@@ -9,7 +10,7 @@ pub struct TowerEntryData {
 }
 
 pub struct DatasetMetadata {
-    pub dataset: String,
+    pub dataset: Dataset,
     pub product: String,
     pub qc_name: String,
     pub data_bytes: u64,
@@ -18,22 +19,6 @@ pub struct DatasetMetadata {
     pub data_type: String,
     pub qc_type: String,
     pub scale_factor: f64,
-}
-
-impl Default for DatasetMetadata {
-    fn default() -> DatasetMetadata {
-        DatasetMetadata {
-            dataset: String::new(),
-            product: String::new(),
-            qc_name: String::new(),
-            data_bytes: 0,
-            qc_bytes: 0,
-            modis_size: String::new(),
-            data_type: String::new(),
-            qc_type: String::new(),
-            scale_factor: 0.0,
-        }
-    }
 }
 
 #[derive(Default, Debug, Deserialize, Serialize)]
